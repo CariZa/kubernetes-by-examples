@@ -1,0 +1,52 @@
+# Users are better served by not using the built-in gitRepo volume
+# type. Update the documentation to suggesting using an init
+# container instead.
+# 
+# Ref: https://github.com/kubernetes/website/pull/8429
+# Ref: https://github.com/kubernetes/kubernetes/issues/60999
+
+# Warning: The gitRepo volume type is deprecated. 
+# To provision a container with a git repo, mount 
+# an EmptyDir into an InitContainer that clones 
+# the repo using git, then mount the EmptyDir into 
+# the Pod’s container.
+# 
+# Ref: https://kubernetes.io/docs/concepts/storage/volumes/#gitrepo
+
+
+# The approach mentioned above:
+# 
+# Creating an init container
+# Ref: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: git-repo-init-approach
+spec:
+  containers:
+  - name: golang
+    image: golang
+    volumeMounts:
+    - name: gitclone
+      mountPath: /src
+    command: ["/bin/sh", "-c"]
+    args:
+      - echo starting;
+        cd /src;
+        go run main.go;
+  initContainers:
+  - name: git
+    image: alpine/git
+    args:
+      - clone
+      - --single-branch
+      - -- 
+      - https://github.com/kelseyhightower/helloworld.git
+      - /clone
+    volumeMounts:
+    - name: gitclone
+      mountPath: /clone
+  volumes:
+    - name: gitclone
+      emptyDir: {}

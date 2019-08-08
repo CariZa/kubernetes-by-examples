@@ -1,0 +1,21 @@
+# Testing if you need a mountPath
+# The answer is yes... you do need it, this file will error
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox
+  namespace: default
+spec:
+  containers:
+  - image: busybox
+    name: busy
+    command:
+      - sleep
+      - "3600"
+    volumeMounts:
+      - name: scratch-volume
+      # note: this file will not run without the "mountPath" - add mountPath to fix
+  volumes:
+    - name: scratch-volume
+      emptyDir: {} 

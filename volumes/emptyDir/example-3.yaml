@@ -1,0 +1,73 @@
+# You won't be able to share a folder between pods though, just containers
+# pods have isolated folder scopes.
+# so a folder location in one pod is not the same as another pod
+# containers share a folder location 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybee-1
+spec:
+  containers:
+  - image: busybox
+    name: busybox-1
+    command:
+      - sleep
+      - "3600"
+    volumeMounts:
+    - mountPath: /busy
+      name: test
+  volumes:
+  - name: test
+    emptyDir: {}
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybee-2
+spec:
+  containers:
+  - image: busybox
+    name: busybox-2
+    command:
+      - sleep
+      - "3600"
+    volumeMounts:
+    - mountPath: /box
+      name: test
+  volumes:
+  - name: test
+    emptyDir: {}
+
+
+#
+#  kubectl exec --kubeconfig="ctx.yml" -ti busybee-1 -c busybox-1 -- ls
+#
+#
+#
+#  Test the shared folders:
+#  look at the folders first in each container inside the pod
+#  busybox-1 container:
+#  kubectl exec -ti busybee-1 -c busybox-1 -- ls
+#  you will see a list of fodlers, the one you are interested in is "busy"
+#  kubectl exec -ti busybee-1 -c busybox-1 -- ls -l busy
+# Response: total 0
+
+#  busybox-2 container:
+#  kubectl exec -ti busybee-2 -c busybox-2 -- ls
+#  you will see a list of fodlers, the one you are interested in is "box"
+#  kubectl exec -ti busybee-2 -c busybox-2 -- ls -l box
+#
+
+
+# confirming there's no link between the two pods
+
+# $ kubectl exec --kubeconfig="ctx.yml" -ti busybee-2 -c busybox-2 -- ls -l box
+# total 0
+
+# $ kubectl exec --kubeconfig="ctx.yml" -ti busybee-1 -c busybox-1 -- ls -l busy
+# total 0
+# -rw-r--r--    1 root     root             0 Aug  8 18:31 test2
+# linux-foundation-1 (⎇  ) $ 

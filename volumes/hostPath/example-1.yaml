@@ -1,0 +1,60 @@
+# just a simple example
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hostpath-ex-1
+spec:
+  containers:
+    - image: busybox
+      name: hostpath-example-1
+      command:
+        - sleep
+        - "3600"
+      volumeMounts:
+        - name: hostpath-1
+          mountPath: /test
+  volumes:
+    - name: hostpath-1
+      hostPath:
+        path: /opt/app
+
+# because it's mounted to the host node, it's slightly more persistent
+# you can delete the pod and recreate it and get the schange back
+# this however is not true persistence, once the node is destroyed the data on the node is gone
+
+# apply the yaml files:
+# $ kubectl --kubeconfig="ctx.yml" apply -f kubernetes-by-examples/volumes/hostPath/example-1.yaml
+
+# $ kubectl --kubeconfig="ctx.yml" exec -it hostpath-ex-1 -- ls -l /test
+# total 0
+
+# $ kubectl --kubeconfig="ctx.yml" exec -it hostpath-ex-1 -- ls -l /test
+
+# to test, adding 3 txt files:
+# $ kubectl --kubeconfig="ctx.yml" exec -it hostpath-ex-1 -- touch /test/one.txt
+# $ kubectl --kubeconfig="ctx.yml" exec -it hostpath-ex-1 -- touch /test/two.txt
+# $ kubectl --kubeconfig="ctx.yml" exec -it hostpath-ex-1 -- touch /test/three.txt
+# Response: 
+# -rw-r--r--    1 root     root             0 Aug  8 19:11 one.txt
+# -rw-r--r--    1 root     root             0 Aug  8 19:11 three.txt
+# -rw-r--r--    1 root     root             0 Aug  8 19:11 two.txt
+
+# delete the pod & try spin it up again
+# $ kubectl --kubeconfig="ctx.yml" delete -f kubernetes-by-examples/volumes/hostPath/example-1.yaml
+
+# kubectl get pods --kubeconfig="ctx.yml"
+
+# apply yaml file again
+# $ kubectl --kubeconfig="ctx.yml" apply -f kubernetes-by-examples/volumes/hostPath/example-1.yaml
+# kubectl get pods --kubeconfig="ctx.yml"
+# Response: 
+# -rw-r--r--    1 root     root             0 Aug  8 19:11 one.txt
+# -rw-r--r--    1 root     root             0 Aug  8 19:11 three.txt
+# -rw-r--r--    1 root     root             0 Aug  8 19:11 two.txt
+
+
+# So by using hostPath, the files are still there, 
+# because they were not removed when the pod closed
+# they existed on the node, not on the pod. 
+# If the node were to be removed or altered, the files would then be affected
