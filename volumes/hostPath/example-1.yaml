@@ -1,3 +1,6 @@
+# only use hostPath if you need to persist data on a node
+# not useful to persist data between pods
+
 # just a simple example
 
 apiVersion: v1

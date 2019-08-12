@@ -1,0 +1,32 @@
+# You can tell and emptyDir volumne what medium to use
+# This is dependent on the abilities offered by the disk of the worker node the pos is on
+# You could speed up the pod and volume by setting the medium 
+
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: emptydir-medium
+spec:
+  containers:
+  - image: nginx:alpine
+    name: nginx
+    volumeMounts:
+    - name: performant
+      mountPath: /usr/share/nginx/html
+  initContainers: 
+  - image: nginx:alpine # can probably find a slimmer image to use, something more lightweight
+    name: html-generator
+    command: ["/bin/sh", "-c"]
+    args: 
+      - "echo 'hello, emtydir with medium meory' > /var/htdocs/index.html"
+    volumeMounts:
+    - name: performant
+      mountPath: /var/htdocs
+  volumes:
+  - name: performant
+    emptyDir:
+      medium: Memory # tmpfs (RAM-backed filesystem)
+      # This will use memory as a storage medium and now disk 
+      # by default the emtyDir stores on whatever is on the backing node
+      # this could be disk or SSD or network storage
+

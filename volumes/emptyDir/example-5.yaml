@@ -1,0 +1,29 @@
+# You can set the readOnly of a volumeMount
+# setting up an nginx container that uses readOnly access to a volume
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: readonly-mount
+spec:
+  containers:
+  - image: nginx:alpine
+    name: nginx
+    volumeMounts:
+    - name: html
+      mountPath: /usr/share/nginx/html
+      readOnly: true
+
+  initContainers:
+  - image: nginx:alpine
+    name: htmlcontent
+    volumeMounts:
+    - name: html
+      mountPath: /tmp/html
+    command: ['/bin/sh', '-c']
+    args:
+      - "echo 'Hello, readonly example, ' + $(date) > /tmp/html/index.html"
+  
+  volumes:
+  - name: html
+    emptyDir: {}

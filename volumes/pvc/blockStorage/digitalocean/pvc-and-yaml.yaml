@@ -1,0 +1,33 @@
+# If you use digital ocean's managed kubernetes clusters
+# Then the block storage will get created by default
+# you don't need to set up the block storage, the PVC request will create it
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: csi-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: do-block-storage
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: my-csi-app
+spec:
+  containers:
+    - name: my-frontend
+      image: busybox
+      volumeMounts:
+      - mountPath: "/data"
+        name: my-do-volume
+      command:
+       - sleep
+       - "3600"
+  volumes:
+    - name: my-do-volume
+      persistentVolumeClaim:
+        claimName: csi-pvc

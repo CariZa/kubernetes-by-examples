@@ -1,0 +1,58 @@
+# This is an example of a persisteed file that 
+# can be stored using digital ocean block storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: expose
+  name: do-storage
+spec:
+  ports:
+  - nodePort: 30703
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: expose
+  type: NodePort
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: persistfiles
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: do-block-storage
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: do-storage
+  labels:
+    app: expose
+spec:
+  containers:
+    - name: website
+      image: nginx:alpine
+      volumeMounts: 
+        - name: html
+          mountPath: /usr/share/nginx/html
+  initContainers:
+    - name: file
+      image: nginx:alpine
+      command: ["/bin/sh","-c"]
+      args:
+        - echo "Hello world! " + $(date) >> /tmp/index.html
+      volumeMounts:
+        - name: html
+          mountPath: /tmp
+  volumes:
+    - name: html
+      persistentVolumeClaim:
+        claimName: persistfiles
+      

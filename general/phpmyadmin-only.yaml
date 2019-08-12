@@ -1,0 +1,83 @@
+# If you use digital ocean's managed kubernetes clusters
+# Then the block storage will get created by default
+# you don't need to set up the block storage, the PVC request will create it
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: expose
+  name: phpmyadmin-svc
+spec:
+  ports:
+  - nodePort: 30703
+    port: 8080
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: expose
+  type: NodePort
+---
+# Don't hardcode the db password like this
+# There are better ways to add secrets to kubernetes
+# Ths is just for the example
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secrets
+type: Opaque
+data:
+  MYSQL_ROOT_PASSWORD: dm9kYWNvbTEyMw==
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: phpmyadmin-secrets
+type: Opaque
+data:
+  PMA_HOST: bXlzcWw=
+  PMA_PORT: MzMwNg==
+---
+apiVersion: v1
+kind: Secret
+metadata: 
+  name: wordpress-secrets
+data:
+  WORDPRESS_DB_HOST: bXlzcWw=
+  WORDPRESS_DB_USER: cm9vdA==
+  WORDPRESS_DB_PASSWORD: dm9kYWNvbTEyMw==
+  WORDPRESS_DB_NAME: d29yZHByZXNz
+  WORDPRESS_TABLE_PREFIX: d3Bf
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: phpmyadmin
+  labels:
+    app: expose
+spec:
+  containers:
+
+    # PHPMYADMIN
+    - name: phpmyadmin
+      image: phpmyadmin/phpmyadmin:4.6.0-1
+      ports:
+        - protocol: TCP
+          containerPort: 80
+          hostPort: 8080
+      env: 
+      - name: PMA_HOST
+        valueFrom:
+          secretKeyRef:
+            name: phpmyadmin-secrets
+            key: PMA_HOST
+      - name: PMA_PORT
+        valueFrom:
+          secretKeyRef:
+            name: phpmyadmin-secrets
+            key: PMA_PORT
+      - name: MYSQL_ROOT_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: mysql-secrets
+            key: MYSQL_ROOT_PASSWORD
