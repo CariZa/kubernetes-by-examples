@@ -1,6 +1,17 @@
 # If you use digital ocean's managed kubernetes clusters
 # Then the block storage will get created by default
 # you don't need to set up the block storage, the PVC request will create it
+
+---
+
+#######
+# IMPORTANT NOTE:
+# These examples are dependent on the do-claim.yaml
+# You must create the PVC claim to run this
+# eg:
+# $ kubectl apply -f do-claim.yaml
+#########
+
 ---
 # Don't hardcode the db password like this
 # There are better ways to add secrets to kubernetes
