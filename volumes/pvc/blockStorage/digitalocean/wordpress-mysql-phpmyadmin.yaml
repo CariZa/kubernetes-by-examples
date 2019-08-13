@@ -2,39 +2,6 @@
 # Then the block storage will get created by default
 # you don't need to set up the block storage, the PVC request will create it
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: expose-wordpress
-  name: wordpress-svc
-spec:
-  ports:
-  # - nodePort: 30703
-  #   port: 80
-  #   protocol: TCP
-  #   targetPort: 80
-  #   name: wordpress
-  - nodePort: 30700
-    port: 80
-    protocol: TCP
-    name: wordpress-port
-  selector:
-    app: wordpress
-  type: NodePort
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: csi-pvc
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
-  storageClassName: do-block-storage
----
 # Don't hardcode the db password like this
 # There are better ways to add secrets to kubernetes
 # Ths is just for the example
@@ -66,35 +33,77 @@ data:
   WORDPRESS_DB_NAME: d29yZHByZXNz
   WORDPRESS_TABLE_PREFIX: d3Bf
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: expose-mysql
+  name: mysql
+spec:
+  ports:
+  - port: 3306
+  selector:
+    app: mysql
+  clusterIP: None
+---
 kind: Pod
 apiVersion: v1
 metadata:
-  name: my-csi-app
+  name: mysql
   labels: 
-    app: wordpress
+    app: mysql
 spec:
   containers:
-    - name: curl
-      image: ubuntu
-      command: 
-        - sleep
-        - "3600" 
     # MYSQL
     - name: mysql
-      image: mysql:5.6
+      image: mysql:5.5 
       env:
       - name: MYSQL_ROOT_PASSWORD
         valueFrom:
           secretKeyRef:
             name: mysql-secrets
             key: MYSQL_ROOT_PASSWORD
+      # literal string value example:
+      - name: MYSQL_DATABASE
+        value: wordpress
+      ports: 
+      - containerPort: 3306
+        name: mysql
       volumeMounts:
         - name: database-storage
-          mountPath: /database
-
+          mountPath: /var/lib/mysql
+  volumes:
+  - name: database-storage
+    persistentVolumeClaim:
+      claimName: csi-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: expose-phpmyadmin
+  name: phpmyadmin
+spec:
+  ports:
+  - port: 80
+    nodePort: 30780
+  selector:
+    app: wordpress
+    tier: phpmyadmin
+  type: NodePort
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: phpmyadmin
+  labels: 
+    app: wordpress
+    tier: phpmyadmin
+spec:
+  containers:
     # PHPMYADMIN
     - name: phpmyadmin
-      image: phpmyadmin/phpmyadmin:4.6.0-1
+      image: phpmyadmin/phpmyadmin:4.9
       env: 
       - name: PMA_HOST
         valueFrom:
@@ -106,17 +115,6 @@ spec:
           secretKeyRef:
             name: phpmyadmin-secrets
             key: PMA_PORT
-      - name: MYSQL_ROOT_PASSWORD
-        valueFrom:
-          secretKeyRef:
-            name: mysql-secrets
-            key: MYSQL_ROOT_PASSWORD
-      # ports:
-      # - containerPort: 80
-      #   hostPort: 8080
-      #   protocol: TCP
-      #   name: phpmyadminport
-
     # WORDPRESS
     # - name: wordpress
     #   image: wordpress:4.8-apache
@@ -146,8 +144,63 @@ spec:
     #       secretKeyRef:
     #         name: wordpress-secrets
     #         key: WORDPRESS_TABLE_PREFIX
-
-  volumes:
-    - name: database-storage
-      persistentVolumeClaim:
-        claimName: csi-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: expose-wordpress
+  name: wordpress-svc
+spec:
+  ports:
+  # - nodePort: 30703
+  #   port: 80
+  #   protocol: TCP
+  #   targetPort: 80
+  #   name: wordpress
+  - nodePort: 30700
+    port: 80
+  selector:
+    app: wordpress
+    tier: wordpress
+  type: NodePort
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: wordpress
+  labels: 
+    app: wordpress
+    tier: wordpress
+spec:
+  containers:
+    # WORDPRESS
+    - name: wordpress
+      image: wordpress:4.8-apache
+      env:
+      - name: WORDPRESS_DB_HOST
+        valueFrom:
+          secretKeyRef:
+            name: wordpress-secrets
+            key: WORDPRESS_DB_HOST
+      - name: WORDPRESS_DB_USER
+        valueFrom:
+          secretKeyRef:
+            name: wordpress-secrets 
+            key: WORDPRESS_DB_USER
+      - name: WORDPRESS_DB_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: wordpress-secrets
+            key: WORDPRESS_DB_PASSWORD
+      - name: WORDPRESS_DB_NAME
+        valueFrom:
+          secretKeyRef:
+            name: wordpress-secrets
+            key: WORDPRESS_DB_NAME
+      - name: WORDPRESS_TABLE_PREFIX
+        valueFrom:
+          secretKeyRef:
+            name: wordpress-secrets
+            key: WORDPRESS_TABLE_PREFIX
+---
