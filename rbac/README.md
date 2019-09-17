@@ -213,7 +213,20 @@ File location: rbac/roles/example-1.yaml
     name: pod-reader # this must match the name of the Role or ClusterRole you wish to bind to
     apiGroup: rbac.authorization.k8s.io
 
-
-
 # Application access via ServiceAccount
 
+## For apps to get access
+
+Create a service account.
+
+    $ kubectl create serviceaccount <name>
+
+When you create a service account, a token also gets created. This token can be used by your apps to make requests against the cluster's api.
+
+eg
+
+    curl https://<cluster-ip>:6443/api -insecure --header "Authorization: Bearer xxxx"
+
+Read more from the documentation:
+
+https://kubernetes.io/docs/reference/using-api/api-concepts/
